@@ -1,0 +1,56 @@
+Package: sbert
+Type: Package
+Title: Topic Modeling with 'Sentence-BERT' Embeddings
+Version: 0.5.8
+Authors@R: c(
+    person(
+      given = "Mohammed",
+      family = "Saqr",
+      role = c("aut", "cph"),
+      email = "mohammed.saqr@uef.fi",
+      comment = c(ORCID = "0000-0001-5881-3109")
+    ),
+    person(
+      given = "Sonsoles",
+      family = "L\u00f3pez-Pernas",
+      role = c("aut", "cre", "cph"),
+      email = "sonsoles.lopez@uef.fi",
+      comment = c(ORCID = "0000-0002-9621-1392")
+    )
+  )
+Description: Builds semantic topic models from 'Sentence-BERT'
+    embeddings (Reimers and Gurevych, 2019) <doi:10.18653/v1/D19-1410>.
+    Sentence embeddings are computed in several modes with models run on
+    the Open Neural Network Exchange ('ONNX') Runtime, including
+    multilingual and long-context encoders and a fast static model.
+    Topics are labeled with class-based term weighting that can be
+    retuned without refitting. Candidate topic counts and document
+    granularities (whole documents, sentences, clauses, or phrases) can
+    be compared side by side, and fitted models assign topics to new
+    documents, give soft memberships and per-document topic mixtures.
+    The package offers coherence and diversity metrics and
+    visualizations.
+License: MIT + file LICENSE
+URL: https://sonsoles.me/sbert/, https://github.com/sonsoleslp/sbert
+BugReports: https://github.com/sonsoleslp/sbert/issues
+Encoding: UTF-8
+Language: en-US
+LazyData: true
+Depends: R (>= 4.1.0)
+Imports: digest, grDevices, graphics, onnxr (>= 0.1.2), parallel, tok
+        (>= 0.2.3), stats, tools, utils
+Suggests: SnowballC, jsonlite, knitr, rmarkdown, testthat (>= 3.0.0),
+        withr
+SystemRequirements: ONNX Runtime (>= 1.25.1)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+RoxygenNote: 8.0.0
+NeedsCompilation: no
+Packaged: 2026-10-09 17:02:15 UTC; slopezpe
+Author: Mohammed Saqr [aut, cph] (ORCID:
+    <https://orcid.org/0000-0001-5881-3109>),
+  Sonsoles López-Pernas [aut, cre, cph] (ORCID:
+    <https://orcid.org/0000-0002-9621-1392>)
+Maintainer: Sonsoles López-Pernas <sonsoles.lopez@uef.fi>
+Repository: CRAN
+Date/Publication: 2026-10-21 14:20:02 UTC
