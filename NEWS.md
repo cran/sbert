@@ -1,3 +1,129 @@
+# sbert 0.6.0
+
+This release collects the changes made since the CRAN release 0.5.8.
+
+## New features
+
+* `dedupe()` accepts a data frame with `column =`: it keeps every column of
+  the row where each text first occurs and adds the count `n`.
+* `topic_sizes(weights =)` accepts the name of a column carried in the
+  fitted model, so `topic_sizes(topic_model, weights = "n")` weights by the
+  counts from `dedupe()` without handling the vector by hand. With
+  `by = "document"` on a segmented model each document counts once.
+* New `as.data.frame()` methods for topic models
+  (`what = "documents"`, `"topics"`, `"terms"`, `"representatives"`), topic
+  hierarchies (the merge table), and prepared corpora (one row per unit).
+* New `summary()` methods for topic-count comparisons (the most coherent
+  count per segment level, with whether every candidate converged) and for
+  topic hierarchies (each topic's nearest neighbor among the other topics,
+  with the step and height at which it first merges).
+* `topic_similarity()` gains `tidy = FALSE`; `tidy = TRUE` returns the
+  similarities as a data frame with `from`, `to`, and `similarity`, and
+  `top =` keeps each row's nearest neighbors, most similar first. The matrix
+  remains the default.
+* New dataset `feedback_embeddings`: the all-MiniLM-L6-v2 embeddings of the
+  first 600 distinct English messages of `feedback_translations`, so the
+  vignettes and examples fit topic models without a model download.
+  It replaces the file `inst/extdata/feedback_embeddings.rds`.
+* `topics()` records whether k-means converged: `diagnostics` gains
+  `converged` and `warnings`. When `iter_max` is reached the fit warns with
+  class `sbert_no_converge`, `summary()` says so, and the table returned by
+  `compare_topics()` gains a `converged` column.
+* Errors raised by the package carry classes (`sbert_bad_input`,
+  `sbert_no_embeddings`, `sbert_dimension_mismatch`,
+  `sbert_model_not_installed`, `sbert_runtime_missing`, `sbert_unknown_model`,
+  `sbert_cache_invalid`, `sbert_download_failed`, `sbert_model_error`,
+  `sbert_no_terms`, `sbert_clustering_failed`, `sbert_no_fitted_model`,
+  `sbert_missing_package`), all inheriting from `sbert_error`; the package's
+  own warnings inherit from `sbert_warning`. Messages are unchanged.
+
+## Changes in behavior
+
+* `summary()` of a topic model returns its result instead of printing it
+  and returning it invisibly; the report is printed when the result is
+  printed, so typing `summary(topic_model)` shows the same report as before.
+  The header line "topic topic_diversity" now reads "topic diversity".
+* The startup message is shorter and no longer says that encoding "just
+  works".
+
+## Bug fixes
+
+* The package defines its own `%||%`; it used the base operator, which only
+  exists from R 4.4.0, although the package supports R 4.1.0.
+* After `reduce_topics()`, and for `topics(fixed_seeds = TRUE)`, the
+  within-topic sum of squares was measured around the unit-length centers
+  or the frozen seeds instead of around the members' mean, so the
+  between/total sum of squares reported by `print()` and `summary()` could
+  be negative (for example -10.7% for 15 feedback topics merged to 6). It is
+  now the share of variance the partition explains, as for a k-means fit.
+  Topic assignments are unchanged.
+* `cache_size()` failed when called without an argument ("promise already
+  under evaluation"); its default is now the package cache directory.
+* `model_download()` names each model's own license in its progress message
+  (four pinned models are MIT, not Apache-2.0).
+* `name_topics()` and the fit plot's size guard raise conditions that also
+  inherit from `sbert_error`.
+
+## Documentation
+
+* New vignettes "Semantic topic modeling with Sentence-BERT" and "Sentence
+  embeddings without Python", which run on the bundled embeddings; new
+  website guides and case studies.
+
+## Other changes
+
+* `compare_topics()` gains `coherence_weight = c("none", "size")` and
+  `coherence()` gains `weight =`. With `"size"`, each topic's coherence
+  counts in proportion to its number of modeled units, so a tiny topic of a
+  few near-identical texts (which scores very high) cannot decide the
+  comparison. The default is unchanged.
+* `strip_list_markers()` and `clean_corpus()` (`list_markers`,
+  `section_numbers`) no longer delete a number that ends a sentence:
+  "in the top 20. Good." and "for student 10." were cut to "in the top Good."
+  and "for student". A one- or two-digit number with a period is now removed
+  only where a list can be: at the start of the text or of a sentence, as a
+  "1." directly followed by a "2.", or as the next number of a list under
+  way. Numbered lists ("1. aims 2. methods") are removed as before.
+* `topic_gamma()` gains `top =`: each document's `top` largest non-zero
+  topic shares, largest first, with a `rank` column.
+* `plot()` of a `compare_topics()` result no longer fails with "need finite
+  'ylim' values". A topic with fewer than two scorable terms has no
+  coherence, and the sweep averaged with `mean()`, so one such topic made the
+  whole candidate `NA`, and a single `NA` row broke the plot. The sweep's
+  `coherence` is now the mean over the scored topics, the same number
+  `summary()` prints for that model. Sweeps that were already `NA` change;
+  every other value is identical.
+* The representatives panels of `plot(type = "fit")` and
+  `plot(type = "representatives")` no longer overlap when many topics are
+  stacked: texts are laid out by their measured height, on two lines when
+  they fit, else one, and a panel too short for all of them says
+  "(k of n shown)".
+* `coherence()` reports `"mean_coherence"` as `NA` rather than `NaN` when no
+  topic can be scored.
+* `plot()` and `print()` of a comparison draw and print missing coherence
+  instead of failing: an empty panel says "not available", and the title
+  drops the "highest coherence" marker when no candidate has a score.
+
+* New `name_topics(object, labels)` names the topics of a fitted model, for
+  example by the kind of message each holds, after reading its
+  representatives. The names replace the `label` column of every topic
+  table, so they appear in `summary()`, `topic_sizes()`, `predict()`,
+  `topic_hierarchy()`, and every plot; nothing is refitted. They are recorded
+  in `$settings$topic_names`, and `reduce_topics()` drops them because merged
+  topics need new names. Invalid names raise `sbert_bad_topic_names`.
+
+* Topics are named by sentences, not words. `topics()` gains
+  `label = c("representative", "terms")`: by default each topic's `label` is
+  its most central document or segment, shortened to 60 characters at a word
+  boundary; `label = "terms"` restores the three-word labels
+  (`"box / red / blue"`). The choice is recorded in `$settings`, so
+  `reduce_topics()` relabels the same way; models saved before 0.5.9 keep
+  word labels. Clusters, terms, and representatives are unchanged.
+* Plots read sentences first. `type = "fit"` puts the representative
+  documents in the first column (or the top row with `per_topic = TRUE`),
+  before the term panels. Representative texts wrap onto two lines instead of
+  being cut after a few words, panel titles are shortened to fit their
+  panel, and the sizes, map, and hierarchy plots show numbered labels.
 # sbert 0.5.8
 
 * The cross-platform numeric tests now compare at rounding tolerance instead
@@ -38,7 +164,7 @@
   comparison and the rowsum-vs-`sweep`/`apply` pooling equivalence — now
   `skip_on_cran()`. They assert bit-for-bit equality against a reference
   generated on one platform, which does not hold across CRAN's different OSes,
-  BLAS builds, and C math libraries (the last digit of a distance or centre can
+  BLAS builds, and C math libraries (the last digit of a distance or center can
   differ). They remain strict same-platform regression guards for local runs
   and CI; the portable guarantee (`topics()` is deterministic across reruns on
   a given machine) keeps running everywhere.
@@ -76,7 +202,7 @@
 - `topics()`, `compare_topics()`, and `topic_corpus()` gain a `segment`
   argument (`"document"`, the default, or `"sentence"`, `"clause"`,
   `"phrase"`) that splits every document with `segment()` before encoding and
-  fits the topics on the segments, so long documents are modelled in full
+  fits the topics on the segments, so long documents are modeled in full
   instead of being truncated to the encoder's context window. The segment
   options travel with it under their `segment()` names: `max_tokens` (counted
   with the fitting model's own tokenizer when a model is used), `merge_below`,
@@ -100,7 +226,7 @@
 - `compare_topics()` compares segmentations as well as counts: pass several
   levels, `segment = c("document", "sentence", "clause", "phrase")`, and every
   level is fitted across every candidate. The table gains a leading `segment`
-  column, `plot()` draws one line per level (colour, point shape, and line
+  column, `plot()` draws one line per level (color, point shape, and line
   type, with a legend), the print hint names both, and `fitted()` takes
   `segment =` alongside `n_topics`. Precomputed embeddings are then a list of
   matrices named by level. The segment-only options apply to the segmented
@@ -117,7 +243,7 @@
 - Topic term plots no longer fail with "need finite 'ylim' values" when a
   topic has no terms left after the stop-word, token-length, and frequency
   filters (`plot(type = "terms")`, `plot(type = "fit")`, and the per-topic
-  figures). Such a topic now draws an empty, labelled panel. A device too small
+  figures). Such a topic now draws an empty, labeled panel. A device too small
   to stack one row per topic in `plot(type = "fit")` raises a classed
   `sbert_plot_too_small` error naming the remedies (`per_topic = TRUE`, a
   `topics = ` subset, or a taller device) instead of the opaque base-graphics
@@ -332,7 +458,7 @@
   could crash the R session — to an incremental O(n_topics * n * d) pass that
   keeps a running nearest-centroid distance (about 24x faster at 20k documents,
   with a fraction of the peak memory). The expensive up-front distinct-row
-  dedup was dropped in favour of an exact in-loop check, and per-document
+  dedup was dropped in favor of an exact in-loop check, and per-document
   centroid cosines are now vectorized. Topic assignments, terms, and
   representatives are bit-identical to previous versions.
 - Added the `covid` dataset: 4,170 COVID-19 research abstracts (2020-2024) on
@@ -642,7 +768,7 @@ columns.
   separation, coherence, and diversity alongside a tidy per-topic table.
 - Added deterministic base-graphics visualizations via a `plot()` method for
   topic models (`type = "sizes"`, `"terms"`, `"map"`) and the `sbert_palette()`
-  colour helper. The document map uses classical MDS on cosine distance.
+  color helper. The document map uses classical MDS on cosine distance.
 - Added `weighting = "bm25"` and `reduce_frequent_words` options to
   `sbert_topics()`, implementing the BM25 and square-root class-based TF-IDF
   variants of Mendonca and Figueira (2025).

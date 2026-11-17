@@ -3,37 +3,45 @@
 \docType{data}
 \name{covid}
 \alias{covid}
-\title{COVID-19 Research Abstracts}
+\title{COVID-19 research abstracts}
 \format{
 A data frame with 4,170 rows and 2 columns:
 \describe{
-  \item{Year}{Integer publication year, from 2020 to 2024.}
-  \item{Abstract}{The article abstract. 323 records carry the placeholder
-    `"[No abstract available]"`; 3,671 of the abstracts are distinct and the
-    longest is 5,285 characters.}
+\item{Year}{Integer publication year, from 2020 to 2024.}
+\item{Abstract}{The article abstract. 323 records carry the placeholder
+\code{"[No abstract available]"}; the other 3,847 hold 3,670 distinct
+abstracts, the longest of 5,285 characters.}
 }
-Editorial notices (retractions, corrections, and errata) are removed during
-preparation, so every row is a research abstract or a placeholder.
+Editorial notices (retractions, corrections, and errata) were removed, so
+every row is a research abstract or a placeholder. \code{\link[=topics]{topics()}} and
+\code{\link[=compare_topics]{compare_topics()}} drop the placeholder rows when given the data frame
+with \code{column = "Abstract"}.
 }
 \source{
 Bibliographic database export of COVID-19 research articles
-  (2020-2024), prepared by `data-raw/covid.R`.
+(2020-2024), prepared by \code{data-raw/covid.R}.
 }
 \usage{
 covid
 }
 \description{
-Abstracts of peer-reviewed research on COVID-19, drawn from a bibliographic
-database export and covering its effects on education, children, schools, and
-society. Longer and more technical than [feedback_translations], with a
-publication year on every record, the corpus is a realistic benchmark for the
-package's embedding and topic-modeling workflow — including temporal analysis
-across the pandemic years.
+\code{covid} is a corpus of abstracts of peer-reviewed research on COVID-19, drawn
+from a bibliographic database export and covering the effects of the pandemic
+on education, children, schools, and society. The abstracts are longer and
+more technical than the messages of \link{feedback_translations}, and every record
+has a publication year, so the corpus serves for topic models of long
+documents, for segmented fits, and for following topics across the years of
+the pandemic.
 }
 \examples{
-table(covid$Year)
+xtabs(~ Year, data = covid)
 
-content <- covid$Abstract[covid$Abstract != "[No abstract available]"]
-nchar(content[1])
+abstracts <- subset(covid, Abstract != "[No abstract available]")
+nrow(abstracts)
+with(abstracts, summary(nchar(Abstract)))
+}
+\seealso{
+\code{\link[=topics]{topics()}} with \code{segment = "sentence"} for long documents;
+\code{\link[=clean_corpus]{clean_corpus()}}; \link{feedback_translations} for a corpus of short texts.
 }
 \keyword{datasets}

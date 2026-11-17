@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Written by Mohammed Saqr and Sonsoles López-Pernas" />
+
+
+<title>Sentence embeddings without Python</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Sentence embeddings without Python</h1>
+<h4 class="author">Written by <a href="https://saqr.me">Mohammed
+Saqr</a> and <a href="https://sonsoles.me">Sonsoles
+López-Pernas</a></h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#data" id="toc-data">Data</a></li>
+<li><a href="#how-is-a-sentence-turned-into-a-vector" id="toc-how-is-a-sentence-turned-into-a-vector">How is a sentence turned
+into a vector?</a></li>
+<li><a href="#which-models-can-be-used" id="toc-which-models-can-be-used">Which models can be used?</a></li>
+<li><a href="#where-are-models-stored-and-when-are-they-downloaded" id="toc-where-are-models-stored-and-when-are-they-downloaded">Where are
+models stored, and when are they downloaded?</a></li>
+<li><a href="#how-similar-are-two-messages" id="toc-how-similar-are-two-messages">How similar are two
+messages?</a></li>
+<li><a href="#which-messages-are-closest-to-a-given-message" id="toc-which-messages-are-closest-to-a-given-message">Which messages
+are closest to a given message?</a></li>
+<li><a href="#when-to-use-which" id="toc-when-to-use-which">When to use
+which</a></li>
+<li><a href="#references" id="toc-references">References</a></li>
+</ul>
+</div>
+
+<p>A sentence embedding is a fixed-length vector that represents the
+meaning of a whole text. Sentence-BERT (Reimers &amp; Gurevych, 2019)
+obtains such vectors from a pretrained transformer that is fine-tuned in
+a siamese arrangement: pairs of sentences pass through the same network,
+and the network is trained so that the cosine similarity of their pooled
+vectors tracks how similar the sentences are in meaning. The result is a
+space in which “Choose the pictures between the cat and the dog” and
+“Pick all the images that lie between them” are neighbors although they
+share few words, so that similarity search, clustering and topic
+modeling can operate on meaning rather than on vocabulary.</p>
+<p>In R, sentence embeddings have usually been computed by calling the
+Python <code>sentence-transformers</code> library, which brings a second
+language runtime, a deep-learning framework and its version conflicts
+into an R analysis. The <code>sbert</code> package computes the same
+embeddings in R. It tokenizes with each model’s own Hugging Face
+tokenizer through the <code>tok</code> package, runs the transformer as
+an ONNX graph through the <code>onnxr</code> package, and pools and
+normalizes the result in base R. Models are pinned to fixed revisions
+and verified by checksum, and nothing is downloaded unless it is
+requested.</p>
+<p>Computing an embedding needs a downloaded model, so the encoding
+steps below are shown and not run. Everything that runs uses the
+embeddings bundled with the package, which were computed by those same
+steps.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(sbert)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="co">#&gt; sbert 0.6.0: Sentence-BERT embeddings and topic models in R.</span></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="co">#&gt;   14 pinned models (see models()); default: all-MiniLM-L6-v2.</span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co">#&gt;   A model is downloaded only on request, once, and verified by SHA-256.</span></span></code></pre></div>
+<div id="data" class="section level2">
+<h2>Data</h2>
+<ul>
+<li><strong><code>feedback_translations</code>:</strong> AI-generated
+feedback messages from a mathematics learning application, with the
+source-language text in <code>feedback</code> and the English
+translation in <code>translation</code>.</li>
+<li><strong><code>feedback_embeddings</code>:</strong> the embeddings of
+the first 600 distinct translations, computed with the pinned
+<code>all-MiniLM-L6-v2</code> model. Row <em>i</em> is the embedding of
+row <em>i</em> of <code>corpus</code> below.</li>
+</ul>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>corpus <span class="ot">&lt;-</span> <span class="fu">head</span>(<span class="fu">dedupe</span>(feedback_translations, <span class="at">column =</span> <span class="st">&quot;translation&quot;</span>), <span class="dv">600</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">dim</span>(feedback_embeddings)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; [1] 600 384</span></span></code></pre></div>
+<p>Each of the 600 messages is a vector of 384 numbers, one per
+dimension of the model.</p>
+</div>
+<div id="how-is-a-sentence-turned-into-a-vector" class="section level2">
+<h2>How is a sentence turned into a vector?</h2>
+<p><code>encode()</code> takes a character vector and returns a matrix
+with one row per text. Between the two, each batch of texts passes
+through four steps:</p>
+<ol style="list-style-type: decimal">
+<li><strong>Tokenization.</strong> The model’s
+<code>tokenizer.json</code> is loaded with <code>tok</code> and splits
+each text into subword tokens, adds the model’s special tokens,
+truncates at the model’s maximum length, and pads the batch to its
+longest member. It returns the token ids and an attention mask that is 1
+for real tokens and 0 for padding.</li>
+<li><strong>Inference.</strong> The ONNX graph, run by
+<code>onnxr</code>, maps the token ids to one contextual vector per
+token: an array of texts by tokens by dimensions.</li>
+<li><strong>Pooling.</strong> The token vectors of each text are
+combined into one vector. Mean pooling averages the vectors of the real
+tokens, <span class="math inline">\(e = \sum_t m_t h_t / \sum_t
+m_t\)</span>, where <span class="math inline">\(h_t\)</span> is the
+vector of token <span class="math inline">\(t\)</span> and <span class="math inline">\(m_t\)</span> its mask value; CLS pooling takes the
+vector of the first token. Each model uses the pooling it was trained
+with.</li>
+<li><strong>Normalization.</strong> Each vector is divided by its
+Euclidean length, so that the dot product of two embeddings is their
+cosine similarity.</li>
+</ol>
+<p>Steps 3 and 4 are plain R arithmetic, exported as
+<code>pool()</code>. A small example with two texts, three token
+positions and two dimensions shows what they compute. In the mask below,
+the third token position of the first text is padding:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>token_vectors <span class="ot">&lt;-</span> <span class="fu">array</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">12</span>, <span class="at">dim =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">2</span>))</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>mask <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>,</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>                 <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>), <span class="at">nrow =</span> <span class="dv">2</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="fu">pool</span>(token_vectors, mask, <span class="at">normalize =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt;      [,1] [,2]</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; [1,]    2    8</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; [2,]    4   10</span></span></code></pre></div>
+<p>The first text has the token vectors (1, 7), (3, 9) and (5, 11), and
+its third token is masked, so its mean is (2, 8). The second text has
+three real tokens, (2, 8), (4, 10) and (6, 12), with mean (4, 10). The
+masked token is excluded from the average, which is why padding a batch
+to its longest member does not change any text’s embedding. CLS pooling
+returns the first token of each text, and normalization rescales each
+row to length 1:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">pool</span>(token_vectors, mask, <span class="at">normalize =</span> <span class="cn">FALSE</span>, <span class="at">method =</span> <span class="st">&quot;cls&quot;</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt;      [,1] [,2]</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt; [1,]    1    7</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; [2,]    2    8</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="fu">pool</span>(token_vectors, mask)</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt;       [,1]  [,2]</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; [1,] 0.243 0.970</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt; [2,] 0.371 0.928</span></span></code></pre></div>
+<p>The bundled embeddings were normalized in the same way; their row
+lengths are 1 up to the four-decimal rounding of the stored values:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">summary</span>(<span class="fu">sqrt</span>(<span class="fu">rowSums</span>(feedback_embeddings<span class="sc">^</span><span class="dv">2</span>)))</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt;       1       1       1       1       1       1</span></span></code></pre></div>
+</div>
+<div id="which-models-can-be-used" class="section level2">
+<h2>Which models can be used?</h2>
+<p><code>models()</code> lists the pinned models. It reads the registry
+inside the package and needs no network:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">models</span>()</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co">#&gt;                                    model dimensions max_tokens      languages size_mb</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt; 1                       all-MiniLM-L6-v2        384        256        English    90.9</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt; 2                      all-MiniLM-L12-v2        384        128        English   133.6</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt; 3                paraphrase-MiniLM-L3-v2        384        128        English    69.5</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt; 4              multi-qa-MiniLM-L6-cos-v1        384        512        English    90.9</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; 5  paraphrase-multilingual-MiniLM-L12-v2        384        128  50+ languages   479.4</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; 6                      all-mpnet-base-v2        768        384        English   436.3</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt; 7  paraphrase-multilingual-mpnet-base-v2        768        128  50+ languages  1119.2</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt; 8                      bge-small-en-v1.5        384        512        English   133.8</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt; 9                       bge-base-en-v1.5        768        512        English   436.5</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt; 10                 multilingual-e5-small        384        512 100+ languages   487.4</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co">#&gt; 11                 nomic-embed-text-v1.5        768       8192        English   548.0</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt; 12           jina-embeddings-v2-small-en        512       8192        English   130.5</span></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="co">#&gt; 13                  mxbai-embed-large-v1       1024        512        English  1337.6</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="co">#&gt; 14                        potion-base-8M        256    1000000        English    30.9</span></span></code></pre></div>
+<p>The registry holds 14 models, from 30.9 MB to 1,337.6 MB on disk,
+with 256 to 1,024 dimensions. Most are English; two
+<code>paraphrase-multilingual</code> models cover more than 50 languages
+and <code>multilingual-e5-small</code> more than 100. The default,
+<code>all-MiniLM-L6-v2</code>, is the model of the bundled embeddings.
+<code>detail = TRUE</code> adds the settings that <code>encode()</code>
+applies for each model:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">subset</span>(<span class="fu">models</span>(<span class="at">detail =</span> <span class="cn">TRUE</span>), <span class="at">select =</span> <span class="fu">c</span>(model, pooling, prefix, engine))</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="co">#&gt;                                    model pooling            prefix engine</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt; 1                       all-MiniLM-L6-v2    mean                     onnx</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt; 2                      all-MiniLM-L12-v2    mean                     onnx</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt; 3                paraphrase-MiniLM-L3-v2    mean                     onnx</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt; 4              multi-qa-MiniLM-L6-cos-v1    mean                     onnx</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; 5  paraphrase-multilingual-MiniLM-L12-v2    mean                     onnx</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt; 6                      all-mpnet-base-v2    mean                     onnx</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt; 7  paraphrase-multilingual-mpnet-base-v2    mean                     onnx</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt; 8                      bge-small-en-v1.5     cls                     onnx</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt; 9                       bge-base-en-v1.5     cls                     onnx</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#&gt; 10                 multilingual-e5-small    mean           query:    onnx</span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#&gt; 11                 nomic-embed-text-v1.5    mean search_document:    onnx</span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="co">#&gt; 12           jina-embeddings-v2-small-en    mean                     onnx</span></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="co">#&gt; 13                  mxbai-embed-large-v1     cls                     onnx</span></span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a><span class="co">#&gt; 14                        potion-base-8M    mean                   static</span></span></code></pre></div>
+<p>Three models use CLS pooling and the rest mean pooling. Two require a
+text prefix, which <code>encode()</code> adds automatically
+(<code>&quot;query: &quot;</code> for <code>multilingual-e5-small</code> and
+<code>&quot;search_document: &quot;</code> for
+<code>nomic-embed-text-v1.5</code>). <code>potion-base-8M</code> is a
+static model: its embedding is a lookup and average of token vectors in
+R, with no ONNX Runtime involved, intended for corpora too large to
+encode with a transformer.</p>
+</div>
+<div id="where-are-models-stored-and-when-are-they-downloaded" class="section level2">
+<h2>Where are models stored, and when are they downloaded?</h2>
+<p>Models are stored in a per-user cache directory, located through
+<code>tools::R_user_dir()</code>. <code>cache_dir()</code> returns that
+path and creates nothing:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">cache_dir</span>()</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt; [1] &quot;/Users/mohammedsaqr/Library/Caches/org.R-project.R/R/sbert&quot;</span></span></code></pre></div>
+<p><code>model_status()</code> reports, for each file of a model,
+whether it is in the cache and whether it passes its pinned byte-size
+and SHA-256 checks:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>status <span class="ot">&lt;-</span> <span class="fu">model_status</span>()</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="fu">subset</span>(status, <span class="at">select =</span> <span class="fu">c</span>(file, exists, valid, expected_bytes))</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co">#&gt;             file exists valid expected_bytes</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">#&gt; 1     model.onnx  FALSE FALSE       90405214</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">#&gt; 2 tokenizer.json  FALSE FALSE         466247</span></span></code></pre></div>
+<p>On the machine that built this page, the default model is not
+installed. The two files a transformer model needs are the ONNX graph
+(90,405,214 bytes for <code>all-MiniLM-L6-v2</code>) and the
+tokenizer.</p>
+<p>Nothing is downloaded when the package is installed, loaded, tested
+or when this vignette is built. Two downloads are explicit and happen
+once: the native ONNX Runtime used by <code>onnxr</code>, and each
+model. The chunk below is not run here:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">install_runtime</span>()</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="fu">model_download</span>(<span class="st">&quot;all-MiniLM-L6-v2&quot;</span>)</span></code></pre></div>
+<p>After that, <code>encode()</code> computes embeddings. The bundled
+matrix was computed this way from the 600 messages of
+<code>corpus</code> and then rounded to four decimals. The first use of
+a model that is not yet installed asks before downloading it in an
+interactive session; scripts opt in with
+<code>options(sbert.download = TRUE)</code> or call
+<code>model_download()</code> first. <code>load_model()</code> loads a
+model explicitly, for example to choose the number of inference threads,
+and the loaded model is passed to <code>encode()</code>:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>embeddings <span class="ot">&lt;-</span> <span class="fu">with</span>(corpus, <span class="fu">encode</span>(translation))</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">load_model</span>(<span class="st">&quot;all-MiniLM-L6-v2&quot;</span>, <span class="at">threads =</span> <span class="dv">4</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>embeddings <span class="ot">&lt;-</span> <span class="fu">with</span>(corpus, <span class="fu">encode</span>(translation, <span class="at">model =</span> model))</span></code></pre></div>
+</div>
+<div id="how-similar-are-two-messages" class="section level2">
+<h2>How similar are two messages?</h2>
+<p>Because the rows are normalized, the cosine similarity of two
+messages is the dot product of their embeddings.
+<code>topic_similarity()</code> computes it for every pair of rows, and
+<code>tidy = TRUE</code> returns one row per pair. The first four
+messages of the corpus are:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">head</span>(corpus, <span class="dv">4</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="co">#&gt;                                     feedback</span></span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="co">#&gt; 1              Víš, co znamená o jeden více?</span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co">#&gt; 2 V červeném má být o dva více než v modrém.</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="co">#&gt; 3   Když to není člověk, tak co to může být?</span></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="co">#&gt; 4              Co znamená všechny za prvním?</span></span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co">#&gt;                                             translation n</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="co">#&gt; 1                    Do you know what “one more” means? 2</span></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#&gt; 2 There should be two more in the red than in the blue. 3</span></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co">#&gt; 3               If it’s not a person, what could it be? 2</span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#&gt; 4        What does “everyone after the first one” mean? 1</span></span></code></pre></div>
+<p>Their pairwise similarities, each pair once:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>pairs <span class="ot">&lt;-</span> <span class="fu">topic_similarity</span>(<span class="fu">head</span>(feedback_embeddings, <span class="dv">4</span>), <span class="at">tidy =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">subset</span>(pairs, from <span class="sc">&lt;</span> to)</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co">#&gt;    from to similarity</span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co">#&gt; 5     1  2     0.3613</span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">#&gt; 9     1  3     0.0954</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt; 10    2  3     0.0935</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt; 13    1  4     0.4894</span></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="co">#&gt; 14    2  4     0.2236</span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a><span class="co">#&gt; 15    3  4     0.2177</span></span></code></pre></div>
+<p>Messages 1 and 4 are the most similar pair (0.489): both ask the
+learner what a phrase means (“one more”, “everyone after the first
+one”). Message 3, about whether something is a person, is the least
+similar to messages 1 and 2 (0.095 and 0.094), while messages 1 and 2,
+both about a difference in quantity, reach 0.361. Similarity follows
+what a message does and what it is about, not the words it shares.</p>
+</div>
+<div id="which-messages-are-closest-to-a-given-message" class="section level2">
+<h2>Which messages are closest to a given message?</h2>
+<p>Similarity search scores every text of a corpus against one query.
+The query here is the second message, a correction about the counts in
+two boxes. Its embedding is taken from the bundled matrix, its
+similarity to every message is added to the corpus as a column, and the
+messages above 0.8 are kept:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>query_text <span class="ot">&lt;-</span> <span class="st">&quot;There should be two more in the red than in the blue.&quot;</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>query <span class="ot">&lt;-</span> <span class="fu">subset</span>(feedback_embeddings, <span class="fu">with</span>(corpus, translation <span class="sc">==</span> query_text))</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>neighbors <span class="ot">&lt;-</span> <span class="fu">transform</span>(corpus,</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>                        <span class="at">similarity =</span> <span class="fu">topic_similarity</span>(feedback_embeddings, query))</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="fu">subset</span>(neighbors, similarity <span class="sc">&gt;</span> <span class="fl">0.8</span>, <span class="at">select =</span> <span class="fu">c</span>(translation, similarity))</span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="co">#&gt;                                                                                   translation</span></span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="co">#&gt; 2                                       There should be two more in the red than in the blue.</span></span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="co">#&gt; 9   If there are supposed to be two more in the blue one, how many have to be in the red one?</span></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="co">#&gt; 10                             There should be two fewer in the red one than in the blue one.</span></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="co">#&gt; 32                                                  There should be more in blue than in red.</span></span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a><span class="co">#&gt; 96          If there should be more in the blue one, how many should there be in the red one?</span></span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a><span class="co">#&gt; 456                                There should be fewer in the red one than in the blue one.</span></span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a><span class="co">#&gt; 469                             There should be two more in the red box than in the blue box.</span></span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a><span class="co">#&gt; 475                            There should be two fewer in the blue one than in the red one.</span></span>
+<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a><span class="co">#&gt;     similarity</span></span>
+<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a><span class="co">#&gt; 2        1.000</span></span>
+<span id="cb14-17"><a href="#cb14-17" tabindex="-1"></a><span class="co">#&gt; 9        0.870</span></span>
+<span id="cb14-18"><a href="#cb14-18" tabindex="-1"></a><span class="co">#&gt; 10       0.898</span></span>
+<span id="cb14-19"><a href="#cb14-19" tabindex="-1"></a><span class="co">#&gt; 32       0.859</span></span>
+<span id="cb14-20"><a href="#cb14-20" tabindex="-1"></a><span class="co">#&gt; 96       0.825</span></span>
+<span id="cb14-21"><a href="#cb14-21" tabindex="-1"></a><span class="co">#&gt; 456      0.843</span></span>
+<span id="cb14-22"><a href="#cb14-22" tabindex="-1"></a><span class="co">#&gt; 469      0.860</span></span>
+<span id="cb14-23"><a href="#cb14-23" tabindex="-1"></a><span class="co">#&gt; 475      0.898</span></span></code></pre></div>
+<p>The query matches itself with similarity 1, and the closest other
+messages are corrections of the same exercise, phrased with “more” or
+“fewer”, “box” or “one”, and as statements or questions. The list also
+shows what embeddings do not separate well: “There should be two fewer
+in the red one than in the blue one” scores 0.898, as high as any other
+message, although it asks for the opposite arrangement, and “There
+should be more in blue than in red” scores 0.859. Sentence embeddings
+capture topic and structure more reliably than the direction of a
+comparison or a negation, so a search that must respect such
+distinctions needs a check on the text itself.</p>
+<p>To search with a new text rather than a message of the corpus, the
+query is encoded with the same model (not run here):</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>query <span class="ot">&lt;-</span> <span class="fu">encode</span>(<span class="st">&quot;Count the pictures in each box again.&quot;</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>neighbors <span class="ot">&lt;-</span> <span class="fu">transform</span>(corpus,</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>                        <span class="at">similarity =</span> <span class="fu">topic_similarity</span>(feedback_embeddings, query))</span></code></pre></div>
+</div>
+<div id="when-to-use-which" class="section level2">
+<h2>When to use which</h2>
+<table>
+<colgroup>
+<col width="37%" />
+<col width="62%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Task</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>List the pinned models and their settings</td>
+<td><code>models()</code>, <code>models(detail = TRUE)</code></td>
+</tr>
+<tr class="even">
+<td>Install the runtime and a model, once</td>
+<td><code>install_runtime()</code>, <code>model_download()</code></td>
+</tr>
+<tr class="odd">
+<td>Check or locate the cache</td>
+<td><code>model_status()</code>, <code>cache_dir()</code>,
+<code>cache_size()</code>, <code>model_remove()</code></td>
+</tr>
+<tr class="even">
+<td>Load a model with chosen threads or backend</td>
+<td><code>load_model()</code></td>
+</tr>
+<tr class="odd">
+<td>Load an ONNX model outside the registry</td>
+<td><code>load_custom()</code></td>
+</tr>
+<tr class="even">
+<td>Compute embeddings</td>
+<td><code>encode()</code></td>
+</tr>
+<tr class="odd">
+<td>Pool token vectors yourself</td>
+<td><code>pool()</code></td>
+</tr>
+<tr class="even">
+<td>Compare embeddings</td>
+<td><code>topic_similarity()</code></td>
+</tr>
+<tr class="odd">
+<td>Group texts into topics</td>
+<td><code>topics()</code>, <code>compare_topics()</code></td>
+</tr>
+</tbody>
+</table>
+<p>The <a href="https://sonsoles.me/sbert/articles/sbert.html">main
+vignette</a> fits topic models on the bundled embeddings, and the guide
+to <a href="https://sonsoles.me/sbert/articles/models-and-cache.html">models,
+the cache, and custom models</a> covers the cache, custom models and
+inference settings in detail. <a href="https://sonsoles.me/sbert/articles/verification.html">Verification:
+Python parity and determinism</a> compares the embeddings with those of
+the Python library.</p>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<p>Reimers, N., &amp; Gurevych, I. (2019). Sentence-BERT: Sentence
+embeddings using Siamese BERT-networks. <em>Proceedings of EMNLP-IJCNLP
+2019</em>, 3982–3992. <a href="https://doi.org/10.18653/v1/D19-1410" class="uri">https://doi.org/10.18653/v1/D19-1410</a></p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -2,7 +2,7 @@
 % Please edit documentation in R/evaluate.R
 \name{coherence}
 \alias{coherence}
-\title{Score Topic Coherence}
+\title{Score the coherence of topics}
 \usage{
 coherence(
   object,
@@ -10,54 +10,81 @@ coherence(
   n_terms = 10L,
   smoothing = 1,
   token_lists = NULL,
-  cores = 1L
+  cores = 1L,
+  weight = c("none", "size")
 )
 }
 \arguments{
-\item{object}{An `sbert_topic_model` returned by [topics()].}
+\item{object}{A topic model fitted by \code{\link[=topics]{topics()}}.}
 
-\item{measure}{Either `"umass"` (Mimno et al. 2011; larger, i.e. closer to
-zero, is more coherent) or `"npmi"` (normalized pointwise mutual
-information, bounded in `[-1, 1]`; larger is more coherent).}
+\item{measure}{\code{"npmi"} (default) or \code{"umass"}.}
 
-\item{n_terms}{Number of top terms per topic to score. Capped at the number
-of terms actually available for each topic.}
+\item{n_terms}{Top terms per topic to score (default 10), capped at the
+terms a topic has.}
 
-\item{smoothing}{Additive smoothing for the UMass co-occurrence count.}
+\item{smoothing}{Count added to each co-occurrence count for UMass
+(default 1).}
 
-\item{token_lists}{Optional precomputed per-document token lists, aligned to
-`object$documents`, that skip re-tokenizing the corpus (as produced by
-[topic_corpus()]). Leave `NULL` to tokenize internally; the score is
-identical either way.}
+\item{token_lists}{Optional precomputed token lists, one per modeled unit,
+as held by a \code{\link[=topic_corpus]{topic_corpus()}}; \code{NULL} (default) tokenizes the text. The
+scores are the same either way.}
 
-\item{cores}{Number of forked worker processes for tokenization when it is
-not already cached. Default `1` (serial). Values above one use
-`parallel::mclapply` on Unix-alikes and fall back to serial elsewhere; the
-result is identical regardless of the count.}
+\item{cores}{Number of forked worker processes for tokenization (default
+1; Unix-alikes only). Results do not depend on it.}
+
+\item{weight}{How topic scores are averaged into the mean: \code{"none"}
+(default), every topic equally, or \code{"size"}, each topic in proportion to
+its number of units, so that a very small topic of near-identical texts
+cannot move the mean.}
 }
 \value{
-A data frame with one row per topic and columns `topic`, `label`,
-  `measure`, `n_terms`, and `coherence`. The corpus-level mean is attached as
-  the `"mean_coherence"` attribute. Topics with fewer than two scorable terms
-  yield `NA`.
+A base data frame with one row per topic and columns \code{topic},
+\code{label}, \code{measure}, \code{n_terms} (terms scored), and \code{coherence} (\code{NA} for a
+topic with fewer than two terms). The mean over the scored topics is
+attached as the attribute \code{mean_coherence} (\code{NA} when no topic can be
+scored) and the averaging as \code{weight}; \link[=summary.sbert_topic_model]{summary()}
+prints the mean.
 }
 \description{
-Computes intrinsic topic coherence from the top terms of a fitted topic
-model and the co-occurrence structure of the input documents. Coherence
-rewards topics whose top terms tend to appear together in the same
-documents, and is the standard quantitative measure for embedding-based
-topic models (Mimno et al. 2011).
+\code{coherence()} scores the coherence of each topic of a fitted model: whether
+the top terms of the topic tend to occur in the same texts. A topic whose
+terms co-occur is more likely to be interpretable as one subject than a topic
+whose terms rarely appear together, and coherence is the usual intrinsic
+measure of topic quality, computed from the corpus itself without external
+judgments.
+
+Each topic is scored from its top \code{n_terms} terms and the co-occurrence of
+those terms in the modeled units (documents, or segments of a segmented
+model). Two measures are available: normalized pointwise mutual information
+(NPMI; Bouma 2009), the mean over term pairs of how much more often two terms
+co-occur than expected, bounded between -1 and 1; and UMass coherence (Mimno
+et al. 2011), the mean log ratio of the number of units holding both terms of
+a pair to the number holding the higher-ranked one, usually negative. For
+both, larger values are more coherent. The result is a table with one row per
+topic; the mean over topics is kept with it, and is what \code{\link[=compare_topics]{compare_topics()}}
+and \link[=summary.sbert_topic_model]{summary()} report.
+
+Coherence is computed from words, while the topics are formed from
+embeddings, so a topic of short texts that share meaning but not vocabulary
+can score low. It complements reading the representative texts and does
+not replace it.
 }
 \examples{
-text <- c(
-  "Cats chase mice", "Dogs chase balls",
-  "Stocks and bonds trade", "Markets price shares"
-)
-embeddings <- rbind(c(1, 0), c(0.9, 0.1), c(0, 1), c(0.1, 0.9))
-topics <- topics(text, 2, embeddings = embeddings, n_terms = 3)
-coherence(topics)
+corpus <- head(dedupe(feedback_translations, column = "translation"), 600)
+topic_model <- topics(corpus, n_topics = 6, column = "translation",
+                      embeddings = feedback_embeddings)
+coherence(topic_model)
+coherence(topic_model, measure = "umass", weight = "size")
 }
 \references{
-Mimno, D., Wallach, H. M., Talley, E., Leenders, M., and
-  McCallum, A. (2011). Optimizing semantic coherence in topic models. EMNLP.
+Bouma, G. (2009). Normalized (pointwise) mutual information in collocation
+extraction. \emph{Proceedings of GSCL}, 31--40.
+
+Mimno, D., Wallach, H. M., Talley, E., Leenders, M., and McCallum, A.
+(2011). Optimizing semantic coherence in topic models. \emph{Proceedings of
+EMNLP 2011}, 262--272.
+}
+\seealso{
+\code{\link[=topic_diversity]{topic_diversity()}}; \link[=summary.sbert_topic_model]{summary()} for
+the model report; \code{\link[=compare_topics]{compare_topics()}} to compare numbers of topics.
 }
